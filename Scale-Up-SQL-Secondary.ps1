@@ -1,4 +1,5 @@
 $resourceGroupName = Get-AutomationVariable -Name "ResourceGroup"
+$dbResourceGroupName = Get-AutomationVariable -Name "dbResourceGroup"
 $serverNameSecondary = Get-AutomationVariable -Name "ServerNameSecondary"
 $elasticPoolName = Get-AutomationVariable -Name "ElasticPoolName"
 $MaxDTU = Get-AutomationVariable -Name "MaxDTU"
@@ -24,13 +25,13 @@ enum maxDatabaseDTU {
 }
 
 # Check if there is a deployment in progress, if there is then exit
-if ((Get-AzResourceGroupDeployment -ResourceGroupName $resourceGroupName | Where-Object {$_.ProvisioningState -eq "Running"}).count -gt 0) {
+if ((Get-AzResourceGroupDeployment -ResourceGroupName $dbResourceGroupName | Where-Object {$_.ProvisioningState -eq "Running"}).count -gt 0) {
     Write-Output "Deployment in progress, exiting"
     exit
 }
 
 # Get the current DTU
-$elasticPool = Get-AzSqlElasticPool -ResourceGroupName $resourceGroupName -ServerName $serverName -ElasticPoolName $elasticPoolName
+$elasticPool = Get-AzSqlElasticPool -ResourceGroupName $dbResourceGroupName -ServerName $serverName -ElasticPoolName $elasticPoolName
 $currentDTU = $elasticPool.Dtu
 
 # Using the currentDTU and the availableDTU enum, if the current DTU is not on the highest setting and isn't already set to the $MaxDTU then find the next highest DTU
@@ -45,4 +46,4 @@ else {
 }
 
 Write-Output "Setting DTU to $setDTUvalue and Database DTU to $setDatabaseDTUvalue"
-Set-AzSqlElasticPool -ResourceGroupName $resourceGroupName -ServerName $serverName -ElasticPoolName $elasticPoolName -Dtu $setDTUvalue -DatabaseDtuMax $setDatabaseDTUvalue -DatabaseDtuMin $setDatabaseDTUvalue
+Set-AzSqlElasticPool -ResourceGroupName $dbResourceGroupName -ServerName $serverName -ElasticPoolName $elasticPoolName -Dtu $setDTUvalue -DatabaseDtuMax $setDatabaseDTUvalue -DatabaseDtuMin $setDatabaseDTUvalue
