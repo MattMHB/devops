@@ -3,6 +3,7 @@ $dbResourceGroupName = Get-AutomationVariable -Name "dbResourceGroup"
 $serverNamePrimary = Get-AutomationVariable -Name "ServerNamePrimary"
 $elasticPoolName = Get-AutomationVariable -Name "ElasticPoolName"
 $MinDTU = Get-AutomationVariable -Name "MinDTU"
+$appManagedIdentityId = Get-AutomationVariable -Name "AppManagedIdentityId"
 
 $serverName = $serverNamePrimary
 
@@ -24,6 +25,17 @@ enum maxDatabaseDTU {
     DTU2000 = 1750
 }
 
+# Login to Azure
+try
+{ 
+    "Logging in to Azure..." 
+    Connect-AzAccount -Identity -AccountId $appManagedIdentityId
+} 
+catch { 
+    Write-Error -Message $_.Exception 
+    throw $_.Exception 
+} 
+
 # Check if there is a deployment in progress, if there is then exit
 if ((Get-AzResourceGroupDeployment -ResourceGroupName $dbResourceGroupName | Where-Object {$_.ProvisioningState -eq "Running"}).count -gt 0) {
     Write-Output "Deployment in progress, exiting"
@@ -36,14 +48,14 @@ $currentDTU = $elasticPool.Dtu
 
 # Using the currentDTU and the availableDTU enum, if the current DTU is not on the lowest setting and isn't already set to the $MinDTU then find the next lowest DTU
 if($currentDTU -ne [availableDTU]::DTU125 -and $currentDTU -ne $MinDTU) {
-    $requiredDTU = [availableDTU]::GetNames([availableDTU]) | Where-Object { [availableDTU]::$_ -lt $currentDTU } | Select-Object -Last 1
+    $requiredDTU = [availableDTU]::GetNames([availableDTU]) | Where-Object { [availableDTU]::$_.value__ -lt $currentDTU } | Select-Object -Last 1
     $setDTUvalue = [availableDTU]::$requiredDTU.value__
     $setDatabaseDTUvalue = [maxDatabaseDTU]::$requiredDTU.value__
 }
 else {
     $setDTUvalue = $MinDTU
-    $setDatabaseDTUvalue = [maxDatabaseDTU]::([availableDTU]::GetNames([availableDTU]) | Where-Object { [availableDTU]::$_ -eq $MinDTU } | Select-Object -First 1).value__
+    $setDatabaseDTUvalue = [maxDatabaseDTU]::([availableDTU]::GetNames([availableDTU]) | Where-Object { [availableDTU]::$_.value__ -eq $MinDTU } | Select-Object -First 1).value__
 }
 
 Write-Output "Setting DTU to $setDTUvalue and Database DTU to $setDatabaseDTUvalue"
-Set-AzSqlElasticPool -ResourceGroupName $dbResourceGroupName -ServerName $serverName -ElasticPoolName $elasticPoolName -Dtu $setDTUvalue -DatabaseDtuMax $setDatabaseDTUvalue -DatabaseDtuMin $setDatabaseDTUvalue
+Set-AzSqlElasticPool -ResourceGroupName $dbResourceGroupName -ServerName $serverName -ElasticPoolName $elasticPoolName -Dtu $setDTUvalue -DatabaseDtuMax $setDatabaseDTUvalue -DatabaseDtuMin 0
