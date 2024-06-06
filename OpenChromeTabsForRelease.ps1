@@ -1,31 +1,5 @@
-function Get-ReleaseDefinitions {    
-    
-    $url = "https://vsrm.dev.azure.com/$organisation/$urlEncodedProject/_apis/release/definitions?api-version=7.1-preview.4"
-    $result = Invoke-RestMethod -Uri $url -Headers @{Authorization = ("Basic {0}" -f $base64AuthInfo)} -Method get -ContentType "application/json"
-    
-    return $result.value
-}
-
-function Get-ReleasesForDefinitionId {
-    param ($definitionId)
-    
-    $url = "https://vsrm.dev.azure.com/$organisation/$urlEncodedProject/_apis/release/releases?api-version=7.0&queryOrder=descending&definitionId=$definitionId"    
-    $result = Invoke-RestMethod -Uri $url -Headers @{Authorization = ("Basic {0}" -f $base64AuthInfo)} -Method get -ContentType "application/json"
-    
-    return $result.value
-}
-
-function Get-ReleaseForReleaseId {
-    param ($releaseId)
-    
-    $url = "https://vsrm.dev.azure.com/$organisation/$urlEncodedProject/_apis/release/releases/$releaseId"
-    $result = Invoke-RestMethod -Uri $url -Headers @{Authorization = ("Basic {0}" -f $base64AuthInfo)} -Method get -ContentType "application/json"
-    
-    return $result
-}
-
 # Import the module
-#Import-Module -Name "Functions-AzureDevOps"
+Import-Module -Name "Functions-AzureDevOps"
 
 $PAT = Get-AutomationVariable -Name "PAT"
 $project = Get-AutomationVariable -Name "project"
