@@ -83,16 +83,16 @@ $sortedWebsites = $websiteList | Sort-Object {
     }
 }
 
-Write-Host "Opening the following websites in Chrome:"
+Write-Output "Opening the following websites in Chrome:"
 $websiteList | ForEach-Object {
-    Write-Host $_.Name
+    Write-Output $_.Name
 }
 
-Write-Host
-Write-Host "Excluded websites:"
+Write-Output
+Write-Output "Excluded websites:"
 
 $excludedList | ForEach-Object {
-    Write-Host $_.Name
+    Write-Output $_.Name
 }
 
 if ($listOnly -eq $true) {
