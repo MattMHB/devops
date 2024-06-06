@@ -1,5 +1,5 @@
 # Import the module
-Import-Module -Name "Functions-ReleaseProcess"
+Import-Module -Name "Functions-AzureDevOps"
 
 Clear-Host # Clear the console window
 
