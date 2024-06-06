@@ -27,15 +27,12 @@ function Get-ReleaseForReleaseId {
 # Import the module
 #Import-Module -Name "Functions-AzureDevOps"
 
-Clear-Host # Clear the console window
+$PAT = Get-AutomationVariable -Name "PAT"
+$project = Get-AutomationVariable -Name "project"
+$organisation = Get-AutomationVariable -Name "organisation"
+$openAllReleases = Get-AutomationVariable -Name "openAllReleases"
+$listOnly = Get-AutomationVariable -Name "listOnly"
 
-param (
-    [string]$PAT = Get-AutomationVariable -Name "PAT",
-    [string]$project = Get-AutomationVariable -Name "project",
-    [string]$organisation = Get-AutomationVariable -Name "organisation",
-    [boolean]$openAllReleases = Get-AutomationVariable -Name "openAllReleases",
-    [boolean]$listOnly = Get-AutomationVariable -Name "listOnly"
-)
 
 $organisationUrl = "https://dev.azure.com/$organisation/"
 $base64AuthInfo = [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes(":$($PAT)"))
