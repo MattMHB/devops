@@ -99,10 +99,12 @@ $excludedList | ForEach-Object {
 if ($listOnly -eq $true) {
     break
 }
-
-# Open the websites in Chrome
-$argumentList = "--new-window "
-$sortedWebsites | ForEach-Object {
-    $argumentList += $_.Url + " "
+else {
+    # Open the websites in Chrome
+    $argumentList = "--new-window "
+    $sortedWebsites | ForEach-Object {
+        $argumentList += $_.Url + " "
+    }
+    Start-Process -FilePath Chrome -ArgumentList $argumentList
 }
-Start-Process -FilePath Chrome -ArgumentList $argumentList
+
