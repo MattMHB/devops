@@ -23,6 +23,7 @@ $excluded = New-Object -TypeName PSObject
 
 #$mcssReleaseDefinitions = Get-ReleaseDefinitions | Where-Object {$_.name -like "MCSS-PdfGenerator-CD-(Release)"}
 $mcssReleaseDefinitions = Get-ReleaseDefinitions | Where-Object { $_.name -like "*(release)" }
+Write-Output $mcssReleaseDefinitions.Count
 
 # Get the last 5 releases for each release definition
 ForEach ($mcssReleaseDefinition in $mcssReleaseDefinitions) {
