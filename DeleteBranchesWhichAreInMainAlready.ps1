@@ -1,5 +1,4 @@
 ﻿Import-Module -Name "Functions-AzureDevOps"
-Import-Module AzTable
 
 $PAT = Get-AutomationVariable -Name "PAT"
 $StorageKey = Get-AutomationVariable -Name "Releases_StorageKey"
