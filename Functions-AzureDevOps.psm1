@@ -936,7 +936,7 @@ function Get-DaysSince {
 
     try {
         # Parse the input date string using the correct format
-        $date = [DateTime]::ParseExact($DateString, "MM/dd/yyyy HH:mm:ss", [System.Globalization.CultureInfo]::InvariantCulture)
+        $date = [DateTime]::ParseExact($DateString, "dd/MM/yyyy HH:mm:ss", [System.Globalization.CultureInfo]::InvariantCulture)
 
         # Get the current date
         $currentDate = Get-Date
@@ -947,7 +947,7 @@ function Get-DaysSince {
         return $daysPassed
     }
     catch {
-        Write-Error "Error processing date: $_"
+        Write-Error "Error processing the date: $_"
         return $null
     }
 }
