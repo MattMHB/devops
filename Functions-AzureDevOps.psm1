@@ -428,6 +428,47 @@ function Set-MergeToMain
     Invoke-RestMethod -Uri $updateurl -Headers @{Authorization = "Basic {0}" -f $base64AuthInfo} -ContentType "application/json" -Method put -Body $body
 }
 
+function Create-PullRequestFromTag
+{
+    param($projectId, $repositoryId, $sourceBranch, $sourceTag, $targetBranch, $title, $description, $deleteSourceBranch = "false")
+
+    $headers = @{ Authorization = "Basic $base64AuthInfo" }
+
+    $url = "https://dev.azure.com/$organisation/$projectId/_apis/git/repositories/$repositoryId/pullrequests?api-version=7.0"
+
+    # Get the commit ID for the tag
+    $tagUrl = "https://dev.azure.com/$organisation/$projectId/_apis/git/repositories/$repositoryId/refs?filter=tags/$sourceTag&api-version=7.0"
+    $tagResponse = Invoke-RestMethod -Uri $tagUrl -ContentType "application/json" -headers $headers -Method GET
+    $tagCommitId = $tagResponse.value[0].objectId
+
+    $body = 
+    @{
+        sourceRefName = "refs/heads/$sourceBranch"
+        targetRefName = "refs/heads/$targetBranch"
+        title = $title
+        description = $description
+        commitId = $tagCommitId  # Use the commit ID of the tag
+        deleteSourceBranch = $deleteSourceBranch
+        completionOptions = 
+        @{ 
+            mergeStrategy = "noFastForward"
+         }
+    } | ConvertTo-Json -Depth 5
+
+    try
+    {
+        $response = Invoke-RestMethod -Uri $url -ContentType "application/json" -Body $body -headers $headers -Method POST
+        return $response.pullRequestId
+    }
+    catch 
+    {
+        if(-NOT $_.ErrorDetails.Message -like "*GitPullRequestExistsException*")
+        {
+            throw
+        }
+    }
+}
+
 function Create-PullRequest
 {
     param($projectId, $repositoryId, $sourceBranch, $targetBranch, $title, $description, $deleteSourceBranch = "false")
@@ -502,7 +543,20 @@ function Approve-PullRequest
     $response = Invoke-RestMethod -Uri $url -ContentType "application/json" -Body $body -headers $headers -Method PUT
 }
 
+function Abandon-PullRequest
+{
+    param($projectId, $repositoryId, $pullRequestId, $reviewerId)
 
+    $headers = @{ Authorization = "Basic $base64AuthInfo" }
+
+    $url = "https://dev.azure.com/$organisation/$projectId/_apis/git/repositories/$repositoryId/pullRequests/$pullRequestId"+"?api-version=7.0"
+
+    $body = @{
+            Status = "abandoned"
+            } | ConvertTo-Json -Depth 5        
+
+    $response = Invoke-RestMethod -Uri $url -ContentType "application/json" -Body $body -headers $headers -Method PATCH
+}
 
 function Check-BranchExists
 {
@@ -691,7 +745,18 @@ function Get-BranchStats
     return $response.value
 }
 
+function Get-PullRequestById
+{
+    param($projectId, $pullRequestId)    
 
+    $headers = @{ Authorization = "Basic $base64AuthInfo" }
+
+    $url = "https://dev.azure.com/$organisation/$projectId/_apis/git/pullrequests/$($pullRequestId)?api-version=7.1-preview.1"        
+
+    $response = Invoke-RestMethod -Uri $url -ContentType "application/json" -headers $headers -Method GET
+
+    return $response
+}
 
 function Delete-Branch
 {
@@ -811,3 +876,79 @@ function Get-All-Branch-Stats {
     return $branchStats.value
 
 }
+
+# Function to get pipelines for a specific repository
+function Get-PipelinesForRepo {
+    param(
+        [string]$ProjectName,
+        [string]$RepoName
+    )
+    
+    $pipelines = az pipelines list --project $ProjectName --repository $RepoName --output json | ConvertFrom-Json
+    return $pipelines
+}
+
+# Function to get all repositories and pipelines
+function Get-AllReposAndPipelines {
+    param (
+        [string[]]$ProjectNames = @("MCSS","Intersoft Common Services")
+    )
+
+    # Initialize an empty array to store the pipeline objects
+    $allPipelines = @()
+
+    # Loop through each project
+    foreach ($project in $ProjectNames) {
+        Write-Host "Processing project: $project"
+        
+        # Get all repositories for the project
+        $repos = (az repos list --project $project --output json | ConvertFrom-Json) | Where-Object { $_.name -notin "mcss-backupx","mcss-certificateautomation", "mcss-devops", "mcss-infrastructure", "devops", "intersoft-nuget-library", "visual-studio-templates", "intersoft-setup"}
+        
+        # Loop through each repository
+        foreach ($repo in $repos) {
+            Write-Host "Processing repository: $($repo.name)"
+            
+            # Get pipelines for the repository
+            $pipelines = Get-PipelinesForRepo -ProjectName $project -RepoName $repo.name
+            
+            # Add pipeline objects to the array
+            foreach ($pipeline in $pipelines) {
+                $pipelineObject = [PSCustomObject]@{
+                    ProjectName = $project
+                    RepoName = $repo.name
+                    RepoId = $repo.id
+                    PipelineName = $pipeline.name
+                    PipelineId = $pipeline.id
+                }
+                $allPipelines += $pipelineObject
+            }
+        }
+    }    
+
+    return $allPipelines
+}
+
+function Get-DaysSince {
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$DateString
+    )
+
+    try {
+        # Parse the input date string using the correct format
+        $date = [DateTime]::ParseExact($DateString, "MM/dd/yyyy HH:mm:ss", [System.Globalization.CultureInfo]::InvariantCulture)
+
+        # Get the current date
+        $currentDate = Get-Date
+
+        # Calculate the difference in days
+        $daysPassed = ($currentDate - $date).Days
+
+        return $daysPassed
+    }
+    catch {
+        Write-Error "Error processing date: $_"
+        return $null
+    }
+}
+
