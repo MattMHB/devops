@@ -934,21 +934,17 @@ function Get-DaysSince {
         [string]$DateString
     )
 
-    try {
-        # Parse the input date string using the correct format
-        $date = [DateTime]::ParseExact($DateString, "dd/MM/yyyy HH:mm:ss", [System.Globalization.CultureInfo]::InvariantCulture)
+    # Declare the date variable
+    $date = [DateTime]::MinValue
 
-        # Get the current date
-        $currentDate = Get-Date
+    # Attempt to parse the date
+    if ([DateTime]::TryParse($DateString, [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::RoundtripKind, [ref]$date)) {
+        # Calculate the time span between the parsed date and now
+        $timeSpan = [DateTime]::UtcNow - $date
 
-        # Calculate the difference in days
-        $daysPassed = ($currentDate - $date).Days
-
-        return $daysPassed
-    }
-    catch {
-        Write-Error "Error processing the date $($DateString) : $_"
-        return $null
+        # Return the number of days as an integer
+        return [Math]::Floor($timeSpan.TotalDays)
+    } else {
+        throw "Failed to parse DateString: '$DateString'"
     }
 }
-
