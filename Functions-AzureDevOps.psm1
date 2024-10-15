@@ -947,7 +947,7 @@ function Get-DaysSince {
         return $daysPassed
     }
     catch {
-        Write-Error "Error processing the date $($date) : $_"
+        Write-Error "Error processing the date $($DateString) : $_"
         return $null
     }
 }
